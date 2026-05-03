@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Opportunity Project — Topic Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:       #0a0c10;
+  --surface:  #12151c;
+  --card:     #181c26;
+  --border:   #252a38;
+  --text:     #e8eaf0;
+  --muted:    #6b7280;
+  --accent:   #4f8ef7;
+  --fh: 'DM Serif Display', Georgia, serif;
+  --fb: 'DM Mono', 'Courier New', monospace;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--fb);
+  font-size:13px;
+  line-height:1.65;
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  position:sticky; top:0; z-index:100;
+  background:rgba(10,12,16,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:16px 32px;
+  display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.header h1 {
+  font-family:var(--fh); font-size:20px;
+  color:var(--text); flex:1;
+  letter-spacing:-0.3px;
+}
+.header h1 span { color:var(--accent); }
+.filter-bar { display:flex; gap:8px; flex-wrap:wrap; }
+.filter-btn {
+  background:var(--surface); border:1px solid var(--border);
+  color:var(--muted); border-radius:20px;
+  padding:5px 14px; font-family:var(--fb); font-size:11px;
+  cursor:pointer; transition:all .15s;
+  text-transform:uppercase; letter-spacing:.5px;
+}
+.filter-btn:hover, .filter-btn.active {
+  color:var(--text);
+  border-color:var(--accent);
+  background:rgba(79,142,247,.12);
+}
+.search-wrap {
+  position:relative;
+}
+.search-wrap input {
+  background:var(--surface); border:1px solid var(--border);
+  color:var(--text); border-radius:20px;
+  padding:5px 14px 5px 32px; font-family:var(--fb); font-size:11px;
+  width:180px; outline:none; transition:border-color .15s;
+}
+.search-wrap input:focus { border-color:var(--accent); }
+.search-wrap::before {
+  content:'⌕'; position:absolute; left:11px; top:5px;
+  color:var(--muted); font-size:13px; pointer-events:none;
+}
+
+/* ── MAIN LAYOUT ── */
+.main {
+  max-width:1400px; margin:0 auto; padding:28px 24px 60px;
+  display:grid; grid-template-columns:1fr 1fr; gap:24px;
+}
+@media(max-width:900px) { .main { grid-template-columns:1fr; } }
+
+/* ── STAT CARDS ── */
+.stat-row {
+  grid-column:1/-1;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;
+}
+.stat-card {
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:16px 20px;
+  animation:fadeUp .4s ease both;
+}
+.stat-card .val {
+  font-family:var(--fh); font-size:28px; color:var(--accent); display:block;
+}
+.stat-card .lbl {
+  color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.8px;
+  margin-top:3px; display:block;
+}
+
+/* ── CHARTS SECTION ── */
+.charts-row {
+  grid-column:1/-1;
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;
+}
+@media(max-width:1100px) { .charts-row { grid-template-columns:1fr 1fr; } }
+@media(max-width:700px)  { .charts-row { grid-template-columns:1fr; } }
+
+.chart-card {
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:18px 18px 14px;
+  animation:fadeUp .5s ease both;
+}
+.chart-card h3 {
+  font-family:var(--fh); font-size:14px; color:var(--text);
+  margin-bottom:14px; letter-spacing:-0.2px;
+}
+.chart-wrap { position:relative; height:220px; }
+
+/* ── TOPIC GRID ── */
+.topics-section {
+  grid-column:1/-1;
+}
+.section-title {
+  font-family:var(--fh); font-size:18px; color:var(--text);
+  margin-bottom:16px; letter-spacing:-0.3px;
+}
+.topics-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+  gap:14px;
+}
+
+/* ── TOPIC CARD ── */
+.topic-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; overflow:hidden;
+  cursor:pointer; transition:border-color .2s, transform .15s, box-shadow .2s;
+  animation:fadeUp .4s ease both;
+}
+.topic-card:hover {
+  transform:translateY(-2px);
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+}
+.topic-card.hidden { display:none; }
+
+.tc-header {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:16px 18px 12px;
+  border-bottom:1px solid var(--border);
+}
+.tc-icon {
+  width:36px; height:36px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.tc-meta { flex:1; min-width:0; }
+.tc-name {
+  font-family:var(--fh); font-size:15px; color:var(--text);
+  line-height:1.3; margin-bottom:4px;
+}
+.tc-cat {
+  font-size:10px; text-transform:uppercase; letter-spacing:.7px;
+  padding:2px 8px; border-radius:10px; display:inline-block;
+}
+.tc-rank {
+  font-size:10px; color:var(--muted); flex-shrink:0; padding-top:2px;
+}
+
+/* score bar */
+.tc-score {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 18px; border-bottom:1px solid var(--border);
+}
+.tc-score-label { color:var(--muted); font-size:10px; min-width:80px; text-transform:uppercase; }
+.tc-bar-wrap {
+  flex:1; background:rgba(255,255,255,.06); border-radius:3px; height:6px; overflow:hidden;
+}
+.tc-bar { height:100%; border-radius:3px; }
+.tc-score-val { font-size:11px; color:var(--text); min-width:30px; text-align:right; }
+
+/* keyword pills */
+.tc-keywords {
+  display:flex; flex-wrap:wrap; gap:5px; padding:10px 18px;
+  border-bottom:1px solid var(--border);
+}
+.kw {
+  font-size:10px; border-radius:4px; padding:2px 8px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  color:var(--muted);
+}
+
+/* doc count */
+.tc-docs {
+  padding:8px 18px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px;
+}
+.tc-docs-bar-wrap {
+  flex:1; background:rgba(255,255,255,.05); border-radius:3px; height:4px; overflow:hidden;
+}
+.tc-docs-bar { height:100%; border-radius:3px; opacity:.6; }
+.tc-docs-label { color:var(--muted); font-size:10px; text-transform:uppercase; min-width:80px; }
+.tc-docs-val { font-size:11px; color:var(--text); min-width:60px; text-align:right; }
+
+/* transcripts accordion */
+.tc-transcripts { padding:10px 18px 14px; }
+.tc-trans-label {
+  font-size:10px; color:var(--muted); text-transform:uppercase;
+  letter-spacing:.7px; margin-bottom:8px;
+  display:flex; align-items:center; gap:6px;
+}
+.tc-trans-label span {
+  background:rgba(79,142,247,.15); color:var(--accent);
+  border-radius:10px; padding:1px 7px;
+}
+.trans-item {
+  border:1px solid var(--border); border-radius:6px; margin-bottom:6px; overflow:hidden;
+}
+.trans-summary {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 12px; cursor:pointer;
+  background:rgba(255,255,255,.02);
+  user-select:none; list-style:none;
+  transition:background .15s;
+}
+.trans-summary:hover { background:rgba(255,255,255,.05); }
+.trans-summary::-webkit-details-marker { display:none; }
+details[open] .trans-summary { background:rgba(79,142,247,.07); }
+.trans-name { flex:1; color:var(--text); font-size:11px; }
+.trans-time {
+  color:var(--muted); font-size:10px;
+  background:rgba(255,255,255,.05); border-radius:4px; padding:1px 7px;
+}
+.trans-lines {
+  padding:10px 12px;
+  background:rgba(0,0,0,.3); border-top:1px solid var(--border);
+  color:var(--muted); font-size:10px; line-height:1.8;
+  white-space:pre-wrap; word-break:break-word; max-height:260px; overflow-y:auto;
+}
+
+/* no results */
+.no-results {
+  grid-column:1/-1; text-align:center;
+  padding:60px 20px; color:var(--muted); font-size:14px;
+  display:none;
+}
+.no-results.visible { display:block; }
+
+/* animations */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+footer {
+  text-align:center; padding:24px;
+  color:var(--muted); font-size:10px;
+  border-top:1px solid var(--border);
+  letter-spacing:.5px; text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Opportunity Project &mdash; <span>Topic Analysis</span></h1>
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-btn active" data-cat="All">All</button>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="Search topics or keywords…">
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- stat cards -->
+  <div class="stat-row" id="statRow"></div>
+
+  <!-- charts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Document Coverage by Topic</h3>
+      <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Topics by Category</h3>
+      <div class="chart-wrap"><canvas id="doughnutChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Quality Score vs Coverage</h3>
+      <div class="chart-wrap"><canvas id="bubbleChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- topic cards -->
+  <div class="topics-section">
+    <div class="section-title">All Topics</div>
+    <div class="topics-grid" id="topicsGrid"></div>
+    <div class="no-results" id="noResults">No topics match your filter.</div>
+  </div>
+
+</div>
+
+<footer>BertONE v3 &bull; Opportunity Project &bull; BERTopic + UMAP + HDBSCAN</footer>
+
+<script>
+const TOPICS = [{"rank": 1, "topic_id": "0", "name": "Education & GED Pathway", "category": "Education", "icon": "\ud83c\udf93", "color": "#4f8ef7", "keywords": ["high school", "GED", "diploma", "college", "credits", "graduate", "dropout", "schooling"], "doc_count": 149, "doc_pct": 50.3, "composite_score": 34.62, "keyword_score": 0.3125, "transcripts": [{"name": "Zala Turk TOP", "start": 1.2, "end": 348.3, "lines": "[1.16\u20139.79] speaker_0: All right. Say that first of all, thank you for coming. And um what is the highest level of education that you completed so far?\n[12.36\u201318.48] speaker_0: And when you were in school, what was the biggest challenge that you had?\n[46.56\u201361.09] speaker_0: mean. No, I give oh no, I totally get what you mean. In regards to the experience itself, were there any challenges or experience wise, was it like any challenges with the teachers, the kids, with uh the whole process of going to school?\n[61.72\u201387.84] speaker_1: No, I was pretty a good student, except like I have some complications with my biological mother and she would constantly like say to the teachers like I'm not a good student, I shouldn't be allowed to go to the bathroom during classes and she would just make it really complicated and then the teachers then um gave me quote unquote special attention because now I'm being Because now I'm being looked at like\n[99.56\u2013110.69] speaker_0: Is there any other higher level of education that you would like to do? Would you like to go to college or is there any other form of education that you want to do?\n[110.69\u2013124.44] speaker_1: Yeah, I'm actually um me and Kate are um working towards completing my CNA program and then after that, um February eleventh, I'm going to school for phlebotomy.\n[124.94\u2013135.19] speaker_1: Okay. And then when I complete that eight week program I will be also trying to um attend school again for L PN.\n[322.54\u2013348.29] speaker_1: Yeah, that's my original goal, except to be honest with you, the four year plan to get an RN is quite extensive and long. Yeah. And I rather keep it to a T. C and A took me three days. All I need to do is my exam. So bottoming's taking me eight weeks, two months. And L P N is doing my longest, which is two years, but still I will be higher in education and getting paid better. And with all those to combine I would be more likely to be to combine I would be more likely to be hired."}, {"name": "Tyshawn Mayo-Johnson", "start": 4.0, "end": 160.1, "lines": "[4.04\u201315.91] speaker_1: Taishan, not Taishaan. Taishan. Taishan. Okay. So first of all thank you for coming and uh we're gonna do this intake form. So highest level of education that you completed so far.\n[15.91\u201318.66] speaker_0: Um eleventh grade.\n[18.66\u201319.66] speaker_1: Eleventh grade.\n[25.24\u201330.36] speaker_1: And what would you say was the biggest challenge about being in school?\n[35.96\u201361.84] speaker_0: I don't know, I always got bullied a lot. I always got bullied in school. I never I never knew why, but it didn't really bother me, but it was just more of like the people and um eventually I just got tired of it and I was just like, you know, maybe this is not for me. School's probably not for me. Mm-hmm. And I was just like, I'm out. I'm out. I'm just gonna go work I don't know. I'm just gonna go work, make my own money.\n[73.00\u201379.88] speaker_1: I grew up in like a suburb area but I had to go to school in the inner city.\n[80.62\u2013133.62] speaker_1: And my parents did not prepare me for what was about to happen. And going like living in one area where it's like peaceful and then going to another place where it's like violent all the time is it was challenging to say. I mean, the first day of school, I saw so like a guy in our group got jumped by a whole nother group of kids and there was no words. Kids, and there was no word spoken, it was just this onslaught out of the blue. So, and that was day one for the next six years of my life. So, when you say the bullying, I totally get it, totally get it. Um, do you have any other aspirations in regards to education? inspirations in regards to education. Like do you want to go back to Infinity? Do you want to get your D D D? Do you want to go what would you like to do?\n[150.12\u2013160.12] speaker_1: Okay. Now are you thinking about going back to get your GED? Yes. Okay. So GED not necessarily go back to the high school, but you prefer the GED route. Yes. Yeah, I get that."}, {"name": "Tokyo", "start": 54.4, "end": 684.5, "lines": "[54.38\u201362.12] speaker_1: And this lady that worked with some kind of company, she was like she was like, Hey, I can you know help you upgrade your phone for seven dollars. I'm like, I only have five dollars.\n[217.60\u2013239.10] speaker_1: I did a um I did I end up doing Zoom call because I realized I hadn't it told me to catch the blu the bus that said clay. I have never in my life seen a bus with the word clay cross it. So I was like, you know what? Let me just see if they'll let me do it on Zoom. Okay. Let me do it on Zoom, but because my girlfriend worked there they said no, it pissed me off because there's a couple there right now. There's a boyfriend\n[498.96\u2013505.96] speaker_0: Right. Okay, so what's your highest education level? Um, like some high school, GED, diploma\n[505.96\u2013511.46] speaker_1: Mm I made it all the way up to tenth grade, so I finished tenth grade year, so now I'm finishing my GED.\n[525.51\u2013532.26] speaker_1: about it and I asked her if I could do my classes here because my classes are from twelve thirty to two thirty. Okay.\n[568.76\u2013578.76] speaker_1: Like my math. I've never touched my math. I made a really high score. So their score range is different. You know how in school it's A to F\n[606.01\u2013617.76] speaker_1: That's why I haven't been'cause I'm not gonna lie, I started school in December but I haven't touched it at all. Not once. Mm-hmm. And I feel like it's because I don't need the classes. But if I go to the classes then I can take my G I can take the test.\n[676.26\u2013684.53] speaker_0: Lock in. Lock in. There we go. Okay, so what was what was your biggest challenge at school up until tenth grade?"}, {"name": "Tiffany", "start": 147.3, "end": 383.2, "lines": "[147.28\u2013160.78] speaker_1: Three, four, seven, three. So what is your highest education level? Like some high school, G E D, diploma? Um and so did you complete high school? Mm-hmm. Okay. So was that a high school diploma or G E D?\n[177.41\u2013183.91] speaker_1: Someone hello. Hello. Okay, so what was your biggest challenge at school?\n[214.92\u2013227.79] speaker_1: All right. So I'm just gonna the next question's if you want to achieve your high school diploma or G D, so I'm just gonna M A. Um What are some of your hobbies or things you'd love to do?\n[291.64\u2013300.69] speaker_1: Like career, like schooling, like interview like just like what interview skills. Interview skills. And so like jobs. Okay.\n[329.46\u2013331.71] speaker_0: So I will be going to school soon.\n[344.96\u2013347.46] speaker_0: I mean I'm going to go to school for business class.\n[350.12\u2013360.00] speaker_1: Perfect. And so like okay, like that's like your career goals, business owner, college. Okay. And so like you did your FAFSA and everything. Did you do your FAFSA? Mm-hmm.\n[381.00\u2013383.25] speaker_0: Let me help you'cause he just graduated college."}, {"name": "Serenitii", "start": 20.1, "end": 248.8, "lines": "[20.14\u201330.89] speaker_0: Okay. You might need to bring that even close. Can you hold it in front of you? Let me know we can hear it. Yeah, there you go. Um so what's your highest education level?\n[31.89\u201334.63] speaker_0: but grade if you didn't get a G D.\n[35.63\u201339.65] speaker_0: eleventh grade, perfect. Um what was your biggest challenge at school?\n[42.38\u201350.12] speaker_0: Attendance. Okay. And did you um did you drop out or you just moved so you ended up not being able to finish twelfth grade?\n[51.62\u201361.62] speaker_0: kitch you up. Very usual story. One of the things we do which we'll talk to you about is well, my next question is do you want to achieve your GED or high school diploma?\n[157.47\u2013169.81] speaker_0: Not really. Okay. So we can help you with that as well. Um and then um do you know the steps to get to the next stage in your life in terms of independent living?\n[237.96\u2013248.84] speaker_0: You doesn't matter. Did you quite like learning when you were at school? Great. And have you ever worked a job before? Yeah. And what where have you worked before?"}, {"name": "Rachel", "start": 14.3, "end": 267.3, "lines": "[14.29\u201319.79] speaker_0: Marvellous. So um what is your highest educational level?\n[19.79\u201321.04] speaker_1: I was in tenth grade.\n[21.04\u201325.29] speaker_0: Tenth grade, brilliant. And what was your biggest challenge at school?\n[32.78\u201348.78] speaker_0: So massive aren't they? Yeah. Yeah. And so did you drop out at tenth grade or you just Yeah. Yes no. You just stopped going. Uh tale that we hear a lot of, but that doesn't mean anything. Because we can get Are you happy to do GED or you want the high school diploma?\n[48.78\u201351.28] speaker_1: I'm actually currently in classes to get my GED.\n[138.03\u2013159.78] speaker_1: Um, I just came because I really need a lot of guidance in my life with a lot of things'cause I'm gonna be eighteen soon and my mom expects me to have my own place by then. Um and with her it's not a lot of guidance, so I just really need a lot of people to kinda guide me in the right direction'cause my biological family does not have a good history. Right. So I'm trying to change that around.\n[198.03\u2013215.28] speaker_0: Brilliant. So we've got entrepreneurs coming to speak and we're gonna have a cosmetology school and a woman who runs it come in and speak because I think that would be a really nice next step for you. Okay. Um how likely, if you hadn't come here, do you think you would achieve this goal?\n[231.03\u2013267.27] speaker_0: And also, we pr haven't said this out loud, but once you're in this cohort, we are together forever. Yes, ma'am. So this is not a three week relationship here. Okay. This is a Miss K, can you help me with this? Meaning me forward. Somebody one of our guys is at co he came in last September and he was filling in his college uh homework and he couldn't submit homework and he couldn't submit it, so he rang me, he was like, I can't make the submission button work I was like, Okay, let's screen share. I've no idea, but let's have a look and we did it together. So yeah, this is long term. Okay. Right here."}, {"name": "Michael", "start": 82.0, "end": 1148.1, "lines": "[82.04\u201385.42] speaker_0: That was my uh elementary school school computer password.\n[97.00\u2013100.38] speaker_1: Um what's your highest education level?\n[101.62\u2013104.21] speaker_1: Ninth grade. Perfect.\n[105.96\u2013108.69] speaker_1: What was your biggest challenge at school?\n[136.29\u2013140.04] speaker_0: It's either work full time or school full time. I I don't do no in between.\n[140.04\u2013146.04] speaker_1: Okay, okay. So do you so do you want to achieve your G D or high school diploma? Yeah.\n[200.35\u2013207.10] speaker_1: Drawing, writing, music, that's amazing. Um because we have creative genius after school programming.\n[1134.20\u20131148.08] speaker_1: So do you think um okay. Okay, and so like what financial challenges are there any that make it hard for you to focus on like your goals of wanting to be like the marine biologist, school, college?"}, {"name": "Jayden Intake", "start": 13.2, "end": 261.7, "lines": "[13.24\u201316.61] speaker_0: What is your highest education level?\n[16.61\u201318.36] speaker_1: I graduated high school.\n[18.36\u201323.89] speaker_0: Good job. Brilliant. And what was your biggest challenge when you were at school, do you think?\n[30.57\u201332.56] speaker_0: Yeah. And it was a big school as well.\n[32.56\u201339.06] speaker_1: No, it was a tiny school where he has people that I didn't know. And they didn't really like me because I was the teacher's daughter.\n[185.80\u2013202.43] speaker_1: I think I'm very likely to achieve it, especially after going to school, because it's something I've always been passionate about, especially in the bakery part of colouring. Yeah. I've always my mom has always told me I should do makeup on other people, so I did her makeup a lot before I cut my grandmother's hair.\n[230.43\u2013255.68] speaker_0: Uh we had a person who went to Dailies, you know Dailies have their little cookie bit. And also, um I've been wanting to get Blueberry, which is the coffee shop across the way, but they sell cakes to um all the southern grounds, all around Jacksonville, so we'll try and get them to come in. That would be great. Yeah. Um but we know uh places there's a culinary school at Clara White. Have you have you heard of that? Yeah. Have you have you heard of that?\n[255.68\u2013261.68] speaker_1: kind of have my mom been kind of updating me in a little few things'cause I don't know if I want to do school here when I move to Iowa."}, {"name": "JMarion Jackson Intake", "start": 0.8, "end": 181.5, "lines": "[0.76\u201313.88] speaker_1: Well Jamarty. As you know my name is Kyle and uh welcome to your intake. So um first things first, uh highest level of education, high school. Is that correct?\n[17.48\u201326.93] speaker_1: So far, right, right. So far. U up to this point. Yeah. And when you were in school, what was the biggest challenge for you while you were there?\n[107.83\u2013113.33] speaker_0: Yeah, I'm I'm going to college um in uh the summer.\n[114.83\u2013124.08] speaker_0: Yeah, um but also the challenge of doing that is because I'm young, I'm sixteen. Oh to college, you know.\n[124.83\u2013131.33] speaker_0: No, um I graduated early basically. I basically skipped. Um\n[132.36\u2013150.99] speaker_0: And going to college at sixteen years old, um, which I'm the only sixteen year old that graduated, you know, so and also with all my other two brothers at the same time, you know. I either I either had a chance of going to um like I got scholarships from like Puthun Cupman and stuff like that.\n[174.49\u2013176.49] speaker_1: They're in college too. They're older than you.\n[177.99\u2013181.49] speaker_1: Okay. So you wanted to go to the same school that they're in? Which is?"}, {"name": "David Butler aka Loona Wolf Afton", "start": 25.1, "end": 414.7, "lines": "[25.05\u201325.80] speaker_0: In high school.\n[25.80\u201331.55] speaker_1: Graduated high school. Awesome. And what was your biggest challenge there?\n[41.56\u201346.69] speaker_1: So is there a level of education that you won't achieve now that you graduate high school?\n[55.69\u201358.69] speaker_1: So did you want to do anything education wise college?\n[367.73\u2013385.98] speaker_0: Two things I did two jobs. One was at a group I lived at was a lawn worker. Lawn so lawn mo uh Like landscaping. Yes. Okay. At the lawn. And that I l I learned how to how to um operate dangerous equipment on that one.'Cause I never knew how to operate those in my life.\n[386.98\u2013414.73] speaker_0: Yes, right I hit that when I was in the rider mode, I was like, Oh my god, I can finally try something that's not that you don't need a license for And the second one was the bakery at a Jewish center and actually three jobs, actually. The second one was bakery at a Jewish center so I learned how to make hala mm which is I can't expo uh I can't say the recipe'cause it's classified on that one. Okay. I'm serious. Okay. Okay. I'm serious. Okay. And the third job was working in your school."}, {"name": "Cat McCain", "start": 2.7, "end": 82.4, "lines": "[2.68\u201312.05] speaker_0: Welcome to your intake. All right, so um with that being said, uh you said you're still in school, correct? Yes. Okay, what grade do you occurly in?\n[31.80\u201339.67] speaker_1: When I was still doing in person, I think it would be the kids there. But I'm in home school now.\n[44.67\u201382.42] speaker_0: Homeschool. It's the challenge there. Or is there a challenge with it? Not really. Not really. My kids did homeschool for a short period of time as well just during the pandemic and oh my gosh. They d they chall it was challenging for them, but for them it was no kids. You know, not being around other kids. So yeah. Alright. Um All right, um so you are on your path to getting your diploma. No challenges there. Yeah. Awesome. And tell me about something that you like doing. What's your hobbies?"}, {"name": "Anakin", "start": 354.4, "end": 1124.0, "lines": "[354.44\u2013357.69] speaker_0: Okay. So like s did you do some high school?\n[375.94\u2013381.19] speaker_1: I finished ninth grade but so let's say I I moved to tenth, but yeah.\n[431.08\u2013435.70] speaker_0: Um, do you want to achieve your GED or high school diploma?\n[445.70\u2013456.20] speaker_1: Far away. Um I my high school diploma was I was close to my high school diploma but but I was like'cause I got kicked out of school so I guess I'm gonna do my G D down.\n[822.44\u2013835.32] speaker_1: If I if I still get if I can get my high school diploma then I can do it easier from there and go straight to college. But I'll tell you if I can't do that I'm gonna take my GED and make it to where I can go.\n[835.32\u2013840.07] speaker_0: Okay. So either high school diploma, so you do you want to go back in person or\n[971.16\u2013989.53] speaker_0: So like as so like is not not a challenge so to speak, but like would you say like um I don't know if this goes back into what you want to achieve also but like trying to see what the process would be for like going back into high school\n[1091.97\u20131124.05] speaker_0: That makes sense, yeah. I feel like a lot of times that's happened to me where I'm like I want to do this, but then I don't I don't even know that like there's another a certain step I have to take and then I it can like really change the like make or break what's gonna happen. Um so do you have any other like what would you like challenges like in navig like do you think in like figuring out kind of like what you need to like help with Like what you need to like help with do you think that's like a challenge? Like with high school and college and stuff? Yeah."}, {"name": "Alora", "start": 14.4, "end": 392.4, "lines": "[14.36\u201336.29] speaker_0: Uh I've I I almost graduated from Marines before I dropped out due to a family circumstance. Then I spent like two to three years dropp dropped out. Then I was on the path of getting my GED, but I wasn't able to finish that because I'm in the process of another family.\n[39.69\u201351.81] speaker_1: I'm sorry. But um that's good though, because if you've nearly got there before, we can get through it quite fast, hopefully, with some support from us, which would be great. Um what was your biggest challenge at school?\n[63.72\u201373.59] speaker_0: I I was out of control at a certain point in my life but that was due to my family circumstances. So it was it was like both. Yeah. Yeah, c b both combined really. Yeah.\n[81.34\u201397.09] speaker_0: I know I have a lot of credits to make up from my eleventh grade year and partially for my twelfth grade year that I have to make up t in order for me to graduate.'Cause I was supposed to be class of twenty twenty four but I didn't make it.\n[168.34\u2013193.34] speaker_0: Yes, ma'am. Um, I have two if I want to potentially get into tattooing'cause I like that. Mm-hmm. And I also want but I also want to get into cosmetology. I was already in barbering and it was gonna help me on my track to getting into cosmetology school'cause I had classes there. But the program that I was in had got shut down and it discontinued the pa the payments towards the class so\n[244.71\u2013255.71] speaker_0: Yes, ma'am. Like kind of. During weekdays I'll be good because they got school from eight thirty or eight o'clock to three or no, four fifteen.\n[333.90\u2013361.15] speaker_0: yet temporarily. Yeah. Um, I worked at the barber shop, I was getting paid for that, and also worked a day at the stadium before the program that I was in had got cancelled. So Oh right. It were both it was two of them. I was supposed to go to a green team program that was supposed to give us money in my eighth grade year, but I didn't follow through with that because it didn't but I didn't follow through with that because it didn't really get me nowhere. Yeah.\n[380.33\u2013392.36] speaker_1: Yeah, and that's why we do short classes with lots of breaks, so that everyone you can just focus that little time on something specific and then we can move on. So hopefully this will be helpful. Thank you. Thank you so much."}, {"name": "Addy", "start": 13.9, "end": 516.8, "lines": "[13.86\u201319.86] speaker_0: Nice. Right, so um what is your highest educational level?\n[19.86\u201326.61] speaker_1: Uh tenth grade well the last grade I fully completed was ninth. I dropped out in the middle of tenth grade.\n[26.61\u201331.86] speaker_0: Okay. What happens at tenth grade?'Cause a lot of people drop out of tenth grade. Is that'cause you don't have to be there after that.\n[31.86\u201338.10] speaker_1: I w I was in an alternative school, like the school for bad kids, what they called it. In Clay County.\n[40.85\u201354.60] speaker_1: And uh th I had there was a situation that was going on in school and I was about to be in the process of getting expelled from the alternative school and so I just went ahead and dropped out'cause at that point it's easier to get my G D.\n[54.60\u201359.35] speaker_0: Yeah. Okay. Um and what was your biggest challenge at school?\n[64.12\u201366.93] speaker_1: School didn't really\n[499.32\u2013516.83] speaker_0: Uh only last month I discovered the turtle. Literally the nicest thing I've ever eaten in my whole life. So good. Think about it a lot. Try not to eat them as much as I think about them. Um anything else you want to tell me that you think will be helpful for me to help you?"}, {"name": "Aaron Allen", "start": 35.1, "end": 266.6, "lines": "[35.06\u201339.81] speaker_0: I think tenth grade. Tenth? Okay. Ninth, tenth, something like that. Okay.\n[122.19\u2013127.94] speaker_1: I hear you. Um do you want to go back to high school? Do you want to go get your GED?\n[127.94\u2013133.69] speaker_0: I would go back to high school, but I don't know if they'll even take me. I have four credits out of\n[135.19\u2013145.73] speaker_0: the time I was supposed to be in high school. Okay. Because I w I literally went for like out of all high school, out of two years, ninth and tenth grade, I probably went like\n[156.31\u2013176.81] speaker_0: I would rather have high school um but right now somebody told me G D and um regular high school diploma doesn't look different but I feel like if you were to go into a high end job interview whatever and they say, Oh, do you have your high school diploma? I said and me saying no, I have my G D it just don't\n[176.81\u2013204.81] speaker_1: I get where you're coming from. I I get where you're coming. I'm not even gonna try to convince you one way or the other. Um what I will say is that um if you said I had my high school diploma and I w or I'm sorry, if you said I went back and I got my high school diploma, I'm gonna look at you a certain way called you went back and finished what you started. Right? But if you went and got your GED, what I'm gonna see is what I'm gonna see is someone who went back and got and finished what they started but finished it a different way.\n[221.06\u2013228.56] speaker_0: But I don't know. I just I as long as I can get it, I really don't care. I just need a high school diploma'cause that's the gateway to success, right?\n[259.06\u2013266.56] speaker_1: work. Yeah. All right. So how far do you think you are away from actually being able to get that high school diploma?"}]}, {"rank": 2, "topic_id": "5", "name": "Streaming, Gaming & Creative Arts", "category": "Creative & Arts", "icon": "\ud83c\udfa8", "color": "#f76b8a", "keywords": ["streaming", "gaming", "cosplay", "drawing", "art", "music", "content creator", "YouTube"], "doc_count": 18, "doc_pct": 6.1, "composite_score": 28.4, "keyword_score": 0.6309, "transcripts": [{"name": "Ondrey", "start": 39.7, "end": 319.6, "lines": "[39.72\u201347.47] speaker_1: Um I draw, I play a lot of video games. Um I sometimes sing to\n[96.47\u2013119.72] speaker_1: Um so what I wanna do is create like an art business. Mm-hmm. Um so basically I will be doing drawings and stuff, but also maybe get into sculpting and um do there's another thing that YouTubers do which is like a they make like anime like like weapons and stuff from like video games. So what do you like that too?\n[294.23\u2013300.23] speaker_0: Yeah, so that's through us. But if if we weren't doing it, would you have a reliable way of getting here?\n[314.76\u2013319.65] speaker_1: Since I play a lot of video games, there's purchases on there that"}, {"name": "JMarion Jackson Intake", "start": 191.7, "end": 476.1, "lines": "[191.74\u2013195.49] speaker_1: And the favorite game is at the moment\n[222.76\u2013230.88] speaker_0: It's a immature game to play. But you know it ain't made for everybody.\n[313.54\u2013327.79] speaker_0: Um, I want to be a streamer. I've actually tried started it so far. Um one of my TikToks accounts has actually reached 16.4k. Okay. So I'm getting up there. Um also I have another account that's at 1700.\n[327.79\u2013330.54] speaker_1: Now what's the content that you're streaming?\n[373.90\u2013396.90] speaker_1: Okay, so funny and some sports stuff. Yeah. Sounds fun. Um how likely are you do you think like achieving this particular goal with streaming is? And do you feel like you are on the right path? Do you feel like it is in what's the word I'm looking for? Do you feel like it's like a no matter what this is gonna happen based off of\n[396.90\u2013418.77] speaker_0: I'ma keep it a a hundred percent with you. Streaming streaming is like it's like getting a lottery, you know, it's really based on what. You could put in all the hours and stuff like that, but you you basically putting your faith in the internet. So it's like some people go see it, but you j y it takes that one person to see it.\n[419.56\u2013438.19] speaker_0: And then you got everybody rolling in. So it's really it's it's it's some luck is in there. Also hard work'cause you still gotta put in the hours and stuff like that to get the viewers, but I feel like if if you get if you make one good video, that's gonna skyrocket your um streaming and stuff like that.\n[470.32\u2013476.07] speaker_0: Meeting a streamer to figure like figure out like the ropes of it, you know."}, {"name": "David Butler aka Loona Wolf Afton", "start": 46.7, "end": 449.9, "lines": "[46.69\u201355.69] speaker_0: Um r I wanna right now wan achieve uh cosplaying and um gaming and streaming. So be a full time gamer, slash streamer and cosplayer. Yes.\n[125.42\u2013134.68] speaker_0: So like a streamer, a game a sh full time streamer, gamer and cosplayer. So a full time gamer and streamer and cosplayer for like part time.\n[134.68\u2013140.18] speaker_1: Full all right, I'm gonna make sure I write that down correctly. Full time streamer and cosplayer.\n[140.18\u2013143.68] speaker_0: Yep, with game and game and of course.\n[143.68\u2013145.93] speaker_1: What would be the difference between a streamer and a gamer?\n[145.93\u2013171.93] speaker_0: So streamer would be me live streaming it? Like you know, going on cause I I'm a young streamer right now. I do stream but my computer is very bad right now, so I can't I have not been able to stream'cause my computer. Okay. So then the gaming, like I do like g I play games for a living and roleplay on games. Mm-hmm. So I guess you could put a streaming in game into one, but yeah. Cross playing, I'm work that's what this is my cross play stuff, these two are. Okay. I'm working on Okay. I'm working on one. Okay.\n[194.93\u2013199.68] speaker_1: And in regards to the steps to getting there, you are you clear on your path to getting\n[443.88\u2013449.88] speaker_0: Kind of an electronic freak, so that's why I'm like very upset that my computer's like this."}]}, {"rank": 3, "topic_id": "2", "name": "Anger & Emotional Regulation", "category": "Mental Health", "icon": "\ud83e\udde0", "color": "#f7a94f", "keywords": ["anger", "fighting", "frustration", "aggression", "violence", "emotional", "punching", "conflict"], "doc_count": 27, "doc_pct": 9.1, "composite_score": 25.95, "keyword_score": 0.5308, "transcripts": [{"name": "Tyshawn Mayo-Johnson", "start": 374.7, "end": 634.8, "lines": "[374.68\u2013441.56] speaker_0: uh what I say just one of them hard headed cops like that's just hard for no reason arresting you that if like if I don't have to do all that I'm not finna do that. Yeah I'm finna be one of them cops chilling go out like when I was growing up um I lived in Daytona so at the time you know it was society wasn't as bad as it is now. Mm so like I had tons of there was tons of police officers who were I had tons of there was tons of police officers who would come out, play basketball, football, actually play with the community. Nowadays you don't really see that. It's just everybody's just so tense and just think something's always gonna happen and which I understand, but it's at the same time like relax a little bit, like understand the job is dangerous, but that that's how I feel like that's how so many people's minds get messed up. Yeah. So many people's minds get messed up. Yeah. So I just kinda wanna just do it to make a difference in life. Even though it might not be that big, but at the end of the day, I can still be there. The feeling of being there when somebody's going through their worst day. Yeah. Okay and helping that person. So that's what I want to do. Okay.\n[622.44\u2013628.07] speaker_1: And how do you learn the best? Hands on, listening,\n[628.07\u2013630.82] speaker_0: Uh I'm a hands on person. Hands on.\n[631.57\u2013634.82] speaker_0: Yeah, I'm a hands on most definitely."}, {"name": "Rachel", "start": 105.3, "end": 387.0, "lines": "[105.28\u2013120.45] speaker_1: I do like to cook. I like to do hands-on things mostly, like lashes, nails, all that kind of stuff. I kinda cure my boredom with that. Um, I do like to hang out with my family a lot, friends also. Um\n[123.53\u2013138.03] speaker_0: Well, lashes is always very handy. So what we try and do is get you the certification so that you can charge more and then you can also work for other people. Yes, right. So that's the plan. Um and what did you come here for today?\n[231.03\u2013267.27] speaker_0: And also, we pr haven't said this out loud, but once you're in this cohort, we are together forever. Yes, ma'am. So this is not a three week relationship here. Okay. This is a Miss K, can you help me with this? Meaning me forward. Somebody one of our guys is at co he came in last September and he was filling in his college uh homework and he couldn't submit homework and he couldn't submit it, so he rang me, he was like, I can't make the submission button work I was like, Okay, let's screen share. I've no idea, but let's have a look and we did it together. So yeah, this is long term. Okay. Right here.\n[379.25\u2013387.00] speaker_1: Um hands on and them basically showing me I'm not sure what that's called, but"}, {"name": "Michael", "start": 558.8, "end": 688.2, "lines": "[558.83\u2013566.58] speaker_0: No, I had his leg, like his his leg was coming through my legs and I'm twisting it like backwards like that. Oh it's not the reason his legs broke, I promise.\n[571.33\u2013582.08] speaker_0: But um yeah, no. Everybody's scared to fight me and it kinda makes me upset because like sometimes I just wanna fight. Like I don't I don't even hit people in the face. I just have a really heavy punch and also see my knuckles.\n[604.75\u2013608.50] speaker_0: I've ne I can't do it. I've never broke my thumb. I can touch my\n[630.96\u2013644.71] speaker_0: I have um in my room I got upset the other day and punched my wall. Oh and I hit a stud and there's like an indent of my knuckle right here in the stud. Like it wasn't it was the stud, so I compacted it so like I hit it so\n[647.46\u2013654.71] speaker_0: And then um we had these we had these full concrete like uh flower pots and I just punched one the other day, it moved like an inch. They're at least like fifty.\n[662.21\u2013668.96] speaker_0: I li I like the fight. I have a punching bag and I break my hand by punching it. Like and it's not even a punching bag, it's a tackle bag so it's soft like it's\n[670.46\u2013674.71] speaker_0: And I punch it so much like I I broke my hand the other day doing that. Oh my god.\n[675.21\u2013688.21] speaker_0: Ask Aaron, ask him how many times a month I break my hand, at least once a week. This hand. And then um was that a couple days ago, um Rosetta, she lives right beside us. I don't know if you know who that is."}]}, {"rank": 4, "topic_id": "1", "name": "Career Goals & Job Readiness", "category": "Work & Career", "icon": "\ud83d\udcbc", "color": "#4fdb9a", "keywords": ["career", "job", "resume", "hire", "work", "skills", "financial skills", "learning", "trades"], "doc_count": 34, "doc_pct": 11.5, "composite_score": 23.83, "keyword_score": 0.4468, "transcripts": [{"name": "Zala Turk TOP", "start": 27.6, "end": 477.9, "lines": "[27.57\u201345.06] speaker_1: I'm not gonna lie, I was kinda boring. And also um just learning like all different people who no longer exist and need to know them. And my education I'm going into, I don't really need to know them.\n[87.84\u201392.93] speaker_0: Attention you didn't ask for or want or need. Okay. Gotcha.\n[99.56\u2013110.69] speaker_0: Is there any other higher level of education that you would like to do? Would you like to go to college or is there any other form of education that you want to do?\n[278.36\u2013288.99] speaker_1: um your way of teaching as in um you learn, you get educated and you get rewarded for being educated.\n[303.16\u2013304.54] speaker_0: Career goals.\n[348.29\u2013365.29] speaker_0: Very good. So if you were to rate if this was a one meaning not likely to happen, and this was a five, meaning absolutely gonna happen, and there's all in between, where would you say you are in regards to the nursing career?\n[429.38\u2013435.65] speaker_0: What kind of can what type of challenges are you currently experiencing that this program can help you break down?\n[473.72\u2013477.85] speaker_0: Are there any personal challenges that this program can help you break down?"}, {"name": "Tokyo", "start": 54.4, "end": 1391.2, "lines": "[54.38\u201362.12] speaker_1: And this lady that worked with some kind of company, she was like she was like, Hey, I can you know help you upgrade your phone for seven dollars. I'm like, I only have five dollars.\n[124.38\u2013136.62] speaker_1: 'cause I wanted to get a my plan was to get the sixty and like a hundred and thirty dollars so I can buy a new phone because I have because of my history with buying phones and not paying it off, I do have to have a down payment.\n[968.75\u2013972.50] speaker_0: Okay. Okay. What do you want to do as a career?\n[972.50\u2013981.00] speaker_1: There's three really two big ones I really want to pursue doing something with music, whether it's me making music or me helping someone else.\n[981.75\u2013985.25] speaker_1: produce their own music. I want to do something that involves music.\n[1008.62\u20131017.25] speaker_0: Six. All right, I'm gonna put a six. There we go. Do you know the steps to get to these goals of like what you want to do as a career?\n[1073.97\u20131083.47] speaker_0: Oh no. Can't be sis. Okay. What challenges can we help you break down um in our body to like I don't know, career?\n[1382.94\u20131391.19] speaker_1: Lowe's, I actually had to work with people. I learned I learned a lot of people's skills there. I learned how to actually communicate with people. I learned how to listen."}, {"name": "Tiffany", "start": 214.9, "end": 1385.6, "lines": "[214.92\u2013227.79] speaker_1: All right. So I'm just gonna the next question's if you want to achieve your high school diploma or G D, so I'm just gonna M A. Um What are some of your hobbies or things you'd love to do?\n[261.16\u2013264.54] speaker_0: Mm. I definitely wanted to like work on my interviews.\n[275.48\u2013278.86] speaker_0: I know some things but I know I can know more, you know, to help me\n[291.64\u2013300.69] speaker_1: Like career, like schooling, like interview like just like what interview skills. Interview skills. And so like jobs. Okay.\n[654.93\u2013663.93] speaker_0: You know, I do wanna leave here working on my resume skills and it fits my resume actually because when I was at North Club they were supposed to help me with it but they didn't.\n[665.18\u2013668.43] speaker_0: The lady didn't want to help me so I didn't really I kinda just winged in my resume.\n[754.68\u2013817.49] speaker_1: Right. So yeah. Okay, yeah, no, because that's definitely that'll be good that we and then we have like I don't know, yeah, I need to double check with the curriculum but it's gonna be good. We're gonna definitely gonna leave here feeling accomplished. So that'll be good. Um so what and then we also have like Vystar and like different um like groups, companies, I don't know what it's called, of people like come in and so you learn like different people like come in and so you learn like different things and you can also like that's kind of like also like that gives you the opportunity to like build like okay like hello like introductions and like interview like not interview but like you know just building the yeah. That's what I think. That's what I think is like'cause also for me I think it was like'cause I didn't like that's the thing where it's like you don't know how you just like sit down and learn it. It's kind of just like okay like go through the motion. I've gone through plenty of times where I'm just like okay that was really gone through plenty of times where I'm just like, okay, that was really embarrassing. But then it's like, okay, now I know. Because that's like you don't learn until you actually like go and obviously you learn sitting here and doing it. Also resume definitely. I have some okay. I'm so sorry. I love talking. Um what challenges can we help you break down?\n[1378.82\u20131385.57] speaker_0: 'cause people won't take you serious. So I definitely want to turn uh communication and leadership skills."}, {"name": "Rachel", "start": 25.3, "end": 379.2, "lines": "[25.29\u201332.78] speaker_1: Um probably the way that they educated me was a big classroom, so they couldn't really individualize, help me.\n[32.78\u201348.78] speaker_0: So massive aren't they? Yeah. Yeah. And so did you drop out at tenth grade or you just Yeah. Yes no. You just stopped going. Uh tale that we hear a lot of, but that doesn't mean anything. Because we can get Are you happy to do GED or you want the high school diploma?\n[53.78\u2013105.28] speaker_0: So we know Literacy Alliance well. I think they're quite slow in terms of progression because again you're in a class through with a low whole load of people. So we can talk about supporting you individually. We've just found a brilliant programme called Career Connect. And if there is any of those GEDs that you feel you're ready to do, like my personal opinion, even knowing you a couple of my personal opinion, even knowing you a couple of hours, is probably the English one. You would probably be fast at. I feel like that's your bag. We can just get that one out of the way. Maybe we could do a practice test and a test. We could even do that while you're here in these three weeks. Okay. And then you can start building that a build up your confidence but also know that you're just a ther you know, a quarter of the way through. Right. So we'll work on that with you. Yes, right. Um Yes, probably. Um so what are your hobbies or things that you love to do?\n[183.03\u2013192.03] speaker_0: We love excited. So, um I know that you've already written them on the sheet of paper, but c for the purposes of uh recording, what are your career goals?\n[192.03\u2013198.03] speaker_1: Um, my career goals to be a cosmetologist and gain enough experience to have my own business in it.\n[231.03\u2013267.27] speaker_0: And also, we pr haven't said this out loud, but once you're in this cohort, we are together forever. Yes, ma'am. So this is not a three week relationship here. Okay. This is a Miss K, can you help me with this? Meaning me forward. Somebody one of our guys is at co he came in last September and he was filling in his college uh homework and he couldn't submit homework and he couldn't submit it, so he rang me, he was like, I can't make the submission button work I was like, Okay, let's screen share. I've no idea, but let's have a look and we did it together. So yeah, this is long term. Okay. Right here.\n[293.75\u2013312.75] speaker_1: Um, becoming more disciplined. Yeah. Being more confident and going to interviews and kinda know what to say. Um, knowing my characteristics and what's best gonna help for that job. Um and just becoming more stable, learning more about financial literacy, that kind of stuff.\n[366.50\u2013379.25] speaker_0: No. And you're quite far away, right, as well. Yes. It would be a lot of bussing. Yes. And are there financial challenges? I think we answered that to make it hard for you to focus on your goals. Yes. Yeah. Uh how do you learn best?"}, {"name": "Ondrey", "start": 61.5, "end": 333.2, "lines": "[61.47\u201375.89] speaker_1: Uh I came here to learn how to manage my finances better. Uh'cause I I suck at saving. Um and get a bit more confident in interviews and stuff. Mm-hmm.\n[85.72\u201389.47] speaker_1: I think it's a pretty good opportunity. Um, I could probably learn a lot from it.\n[89.47\u201396.47] speaker_0: Brilliant. And um now I'll go on to number eleven, which is uh your career goals. Could you share those please?\n[119.72\u2013152.72] speaker_0: Yeah. We um as well as the Opportunity Project, we have a event called Career Carousel, which we've got on the twenty ninth, which I think is two weeks tomorrow. And um what we will be doing then is we have different people from different um career backgrounds come and talk and one of them is a person with their own painting business. So, um an artist who will come in and talk, so they will be artist who will come in and talk. So they will be of great interest to you, I think. And talking about we also have entrepreneurs coming in and talking, but I just think that'll be really interesting to hear about that. Yeah.\n[198.47\u2013203.97] speaker_0: Okay. So you know that you feel like you know all the steps to get to making it a business?\n[234.54\u2013241.79] speaker_0: Oh maybe we'll get him to come and talk as well. If you've got his contacts I'd love it. And see if they wanna he wants to share with some other people.\n[255.24\u2013263.12] speaker_1: Well as I said before, probably like learning how to manage my finances a little bit better.\n[324.21\u2013333.21] speaker_0: Everyone and also they've spent billions of dollars making them super attempted super tempting, haven't they? Like who are we to judge? Um how do you learn best?"}, {"name": "JMarion Jackson Intake", "start": 33.1, "end": 656.8, "lines": "[33.09\u201335.34] speaker_0: 'Cause you don't want to be loud and wrong.\n[39.08\u201347.41] speaker_0: And also, um, making friend well, I'm a friendly person, but you know, like trying to, you know what I'm saying?\n[90.83\u2013107.83] speaker_1: And it's like everybody's laughing and all that stuff, right? And so yeah, I totally get that. When you said it, I was like, Yeah, I get that one. Um What's the next level of education that you actually are want to achieve? Or is there another next level?\n[165.99\u2013170.49] speaker_0: I took I I didn't take one of the scholarships, I just wanted to be with my brothers, you know.\n[177.99\u2013181.49] speaker_1: Okay. So you wanted to go to the same school that they're in? Which is?\n[283.54\u2013304.79] speaker_0: Yeah. Um I like it so far. Um it looks um real organized. Um looks like they know what they um want to do and um they have a um a line or like a process of actually getting to what they trying to do and stuff like that and actually giving us tools and stuff like that to help us, you know. So I really\n[304.79\u2013313.54] speaker_1: So you like what's included in the program? Yeah. Cool. And from a career aspect, have you thought about any career goals or\n[628.00\u2013656.75] speaker_0: from it. I was actually in John's room down the hall with the um computers, you know what I'm saying, just learn the ins and outs of a PC. Okay. Thank God I finally got my own PC so I know what I'm doing. Um I'm not just doing the the m utmost with it. Yeah. So I'm I'm being more cautious because I know what can happen. Yeah. Um if I don't do certain precautions. So I learned the ins and outs, the the bios, learning how to um update different how to um update different things so my PC runs smoothly. Okay. Things like that."}, {"name": "Hunter", "start": 76.8, "end": 216.2, "lines": "[76.77\u201385.27] speaker_1: You failed tenth grade and didn't want to do it again. You failed it twice. Okay. Do you want to achieve your GED or high school diploma?\n[114.77\u2013119.01] speaker_0: Um making music, drawing, um\n[120.92\u2013139.79] speaker_0: I guess um acting, but I won't really say that I've done much of it. I mean I haven't been in even any theater or anything like that, but I guess, um, maybe making like a something online, maybe something for YouTube or something like that, just uh video making.\n[151.48\u2013156.77] speaker_0: I wanted to what I wanna learn about um\n[164.92\u2013176.45] speaker_0: I've been really looking towards not just studying but also working and I've had a little bit of trouble with just starting off. Mm. So I want like\n[188.43\u2013194.93] speaker_1: Marvellous. First couple of hours have gone well. Well done. Um, so do you have career goals?\n[194.93\u2013209.93] speaker_0: Um, yes I do. I want well, I guess would be more of like a creating goal, but I want one day I wanna be in a movie probably, uh or a T V show or anything like that and I wanna release an album one day.\n[209.93\u2013216.18] speaker_1: Of your own music? Yes. Oh brilliant. How likely do you think you will achieve this goal?"}, {"name": "Addy", "start": 114.0, "end": 396.4, "lines": "[114.02\u2013148.51] speaker_0: Okay, so you've started the work. Um and it are you on a you're not on a programme now though. Perfect. So we have a really good relationship with Career Connect and what we aim to do is help you to at least sign up for one of the exams before you've left us so that you can hopefully pass it and then start building on it and get, you know, a fourth of the way through and get through it as fast as possible rather than make it into the Get through it as fast as possible rather than make it into this whole eight month programme that you have to stay engaged with. So we'll definitely do that with you. What are some of your hobbies and things you love to do?\n[224.78\u2013238.53] speaker_1: for just to help find like financial skills, get help with my G D and to just help me hopefully help me with a job outside of here.\n[248.50\u2013267.25] speaker_0: Yeah. And you I learn something different every day. Like the Career Connect people, I only met two weeks ago and I can't believe I didn't know them before, but I didn't. So yeah, all that sort of stuff. It's just this it's very complex. I don't know if it's the Jacksonville thing, but it's hard to know who can help you. So do you have career goals?\n[269.25\u2013285.50] speaker_1: Um, I want to either be a diesel mechanic but the my main career I like wanna achieve is just something in music. Like either music producing or being a singer, songwriter, just anything in music. I'm very music oriented. Nice.\n[296.36\u2013304.49] speaker_1: With the music career I feel like I still could have achieved it even if I didn't come here. Because I I go out and do open mic night. I go\n[324.87\u2013342.87] speaker_1: Uh, the diesel mechanic it's more of like just my backup career because it's really these days it's like really hard to be successful in music. So like diesel mechanic is more of like a realistic career. And I feel like I would need a lot of help to even get that started.\n[342.87\u2013360.62] speaker_0: Yeah. And what a lot of people do is have something like a diesel mechanic career so that they have free time to do what they love, but they also have the financial support of a job. So yeah, cooking is a great um company to work for and they have loads of diesel mechanics.\n[377.12\u2013396.37] speaker_1: Um hopefully learning like hopefully I I wanna I wanna learn a lot more about financial skills. Or like like budgeting and like yeah budgeting making making sure like I know I'm gonna have m the money for this, like the important stuff before I even go buy what I buy what I want."}, {"name": "Aaron Allen", "start": 122.2, "end": 679.3, "lines": "[122.19\u2013127.94] speaker_1: I hear you. Um do you want to go back to high school? Do you want to go get your GED?\n[150.81\u2013156.31] speaker_1: Well I guess my question really is do you want high school or do you prefer to get your G E D?\n[321.98\u2013336.98] speaker_0: Really? My uncle, uh and my biological family, before I got adopted, he actually um owns a boxing gym in Kentucky. That's awesome. So I before I could even walk, I was learning how to how to box. Yeah. It's\n[342.52\u2013364.64] speaker_0: Took it as an opportunity. I mean, Miss Erica, she was like I I was really just pouring my heart out to her, like, dang bro, no but nowhere will hire me'cause I'm a multi convict convicted felon, da da da. And they were like Well, let's see what we can do and they said, I know this she said, I know this one place that might be able to help you. And I was like, All right, sign me up.\n[369.64\u2013392.77] speaker_0: It's a uh my first thoughts, this is gonna be an amazing program. Everybody's so chill, laid back. Like if I went to regular high school, I couldn't go without a few blunts before I go on the bus'cause it it's so stressful just walking through the hallways of the high school. Mm-hmm. But here it's like everybody just They're chill. They're chill, you know, ready. They everybody here wants to improve their self. So it's like\n[394.52\u2013400.89] speaker_1: Do you have I know you mentioned that you wanted to have several trays. Have you identified what the trades are that you want to do?\n[402.64\u2013412.89] speaker_0: Alright. So I wanted to be an electrician, a mechanic, a plumber, and um a carpenter. I wanted to get those four.\n[645.96\u2013679.34] speaker_0: Honestly, connections, like learn. It like for me it wasn't even about the money. Like I don't know if you know Phoenix. No. Uh he's a kid who used to come here. Um he was supposed to come today but he didn't want to get out of bed. But um he lived with me. Um and it's like he was like, Oh yeah, bro, I'm gonna go'cause they pay you to go, whatever. 'Cause they pay you to go, whatever. It's not even about that for me. It's like just the opportunity to learn how to better myself. Just just that alone seems like"}]}, {"rank": 5, "topic_id": "7", "name": "Substance Use & Recovery", "category": "Health & Wellness", "icon": "\ud83c\udf3f", "color": "#b47ef7", "keywords": ["sobriety", "quitting", "addiction", "recovery", "substance use", "alcohol", "marijuana", "clean"], "doc_count": 6, "doc_pct": 2.0, "composite_score": 20.65, "keyword_score": 0.4902, "transcripts": [{"name": "Michael", "start": 289.0, "end": 1054.6, "lines": "[289.00\u2013294.12] speaker_0: I'm gonna try to finish this time, but if I end up finding something better to do, I'm not quite gone.\n[757.96\u2013770.71] speaker_0: So I walked up to her and let her hit me with a stick just to make her feel better and then she um tackled me so I like grabbed her wrist and was trying to hold her down because like you know this whole arm the whole time all I could feel every time I bent my arm was like a sharp pain.\n[772.21\u2013780.21] speaker_0: And so I'm trying to hold her down while she's fighting me and then she ends up putting me in the corner like this and tries to choke me up. I'm like, good technique, good technique. You got tight up my throat though.\n[810.84\u2013815.84] speaker_0: So and it's like I'm just trying to strap myself and she's always like, put your phone down\n[1019.36\u20131023.11] speaker_0: Well I smoked a blunt but it's I'm sober off alcohol.\n[1026.11\u20131032.11] speaker_0: It's just a fact that I've been smoking for so long, we don't do nothing to me but I gotta get dabs or something and they're just so expensive.\n[1041.36\u20131045.86] speaker_0: But I'm on meds now so it might be easier to quit. I'm gonna try for a little bit at least.\n[1047.11\u20131054.61] speaker_0: I've been trying to quit for a long time actually. Like people say you can't get addicted to weed. I I don't know how true that is, but I'm dependent at least."}]}, {"rank": 6, "topic_id": "3", "name": "Phone & Technology Barriers", "category": "Technology", "icon": "\ud83d\udcf1", "color": "#4fd6f7", "keywords": ["phone bill", "data plan", "Verizon", "AT&T", "phone payment", "connectivity", "technology access"], "doc_count": 27, "doc_pct": 9.1, "composite_score": 20.48, "keyword_score": 0.3941, "transcripts": [{"name": "Tokyo", "start": 9.9, "end": 286.9, "lines": "[9.88\u201314.62] speaker_0: All right. Um contact info. Phone number?\n[54.38\u201362.12] speaker_1: And this lady that worked with some kind of company, she was like she was like, Hey, I can you know help you upgrade your phone for seven dollars. I'm like, I only have five dollars.\n[81.88\u201393.38] speaker_1: A T and T the deal they offered was I could get a free phone but I didn't feel like waiting that long because they had to find one that actually was working. And I was like, No, I'm I'm gonna just stick with my phone and then trade it out later on.\n[124.38\u2013136.62] speaker_1: 'cause I wanted to get a my plan was to get the sixty and like a hundred and thirty dollars so I can buy a new phone because I have because of my history with buying phones and not paying it off, I do have to have a down payment.\n[137.62\u2013152.38] speaker_1: gonna actually try to get that down in the phone in the monthly um the monthly bill or whatever. Get a new phone and pay the phone bill. But now it says it's a hundred and twelve dollars. So I need like two hundred, maybe two fifty just to get a new phone and pay it back.\n[152.38\u2013167.62] speaker_0: That's the thing'cause it's like they don't add on'cause I think the additional thing is like paying like'cause you're paying like okay, they'll be like, Okay, the plan's fifty and I'm sitting with the lady and she's like, Okay, so like it's gonna be fifty and then right as I'm getting off the chair to leave, she's like, Oh yeah, uh a plus plus like the thirty five or the forty to pay like the phone plan. And I'm like oh\n[258.36\u2013264.36] speaker_1: The lady that um interviewed me, she's not she doesn't have like the gray to hire anybody.\n[268.61\u2013286.86] speaker_1: Then I called back to check on the status of my interview and the manager of the store she responded she answered the phone. So I told her that um I talked to her and she told me that she wanted me to come back in because the lady I interviewed with she told her I had serious health issues. So when I came in and I talked to her'cause I told her I had cystein ovaries. So sometimes I'm in pain."}, {"name": "Tiffany", "start": 82.8, "end": 1013.0, "lines": "[82.76\u201385.64] speaker_1: Perfect. So which phone number do you have contact with?\n[139.16\u2013141.78] speaker_1: There and yeah, so what's a phone number?\n[160.78\u2013161.53] speaker_0: for the phone.\n[360.75\u2013362.75] speaker_1: So like are you paying for college?\n[665.18\u2013668.43] speaker_0: The lady didn't want to help me so I didn't really I kinda just winged in my resume.\n[690.93\u2013698.18] speaker_0: I had to learn everything so like fast. I didn't get interviewed proper. Right. I don't know how to interview properly or\n[714.68\u2013716.68] speaker_0: I didn't even know that for paying.\n[985.99\u20131012.99] speaker_1: Oh my gosh. I fail you. This is like literally me. I don't like I don't think until working here where I was like, okay, I need now I'm like writing stuff like all over the place where like before I would just be like Okay, I'll just remember and then I just for keep forgetting it. So it's just those things, right, where it's like you just have to That's the thing, the calendar like then I realized like okay like these apps that they put onto our phone, like okay that Like these apps that they put onto our phone, like, okay, that makes sense. Right."}]}, {"rank": 7, "topic_id": "6", "name": "GED Test Preparation", "category": "Education", "icon": "\ud83d\udcdd", "color": "#f7e24f", "keywords": ["GED test", "practice exam", "test prep", "study", "voucher", "attend classes", "score", "exam ready"], "doc_count": 6, "doc_pct": 2.0, "composite_score": 19.75, "keyword_score": 0.4678, "transcripts": [{"name": "Tokyo", "start": 525.5, "end": 724.2, "lines": "[525.51\u2013532.26] speaker_1: about it and I asked her if I could do my classes here because my classes are from twelve thirty to two thirty. Okay.\n[544.51\u2013547.26] speaker_1: Two I have classes two days out of the week and I'll\n[552.51\u2013563.26] speaker_1: I only have two tests left. Actually the second week after we finished or maybe within that same week we graduated, I actually went and took my placement test and I was shocked.\n[606.01\u2013617.76] speaker_1: That's why I haven't been'cause I'm not gonna lie, I started school in December but I haven't touched it at all. Not once. Mm-hmm. And I feel like it's because I don't need the classes. But if I go to the classes then I can take my G I can take the test.\n[618.76\u2013623.26] speaker_1: I have to attend a certain amount of classes to actually get the voucher code to do it.\n[646.26\u2013651.51] speaker_1: like the class I go to because either you have to attend in person on Zoom if you attend class\n[653.01\u2013668.26] speaker_1: Yeah. Yeah. The practice tests are gonna always be free with them. But if you get your actual tests free, you do have to attend class. Um I think after you fail it the second time they can't pay for it because of the program that they um go through. That's why they offer you the practice test free so many times.\n[708.71\u2013724.21] speaker_1: Kinda yeah,'cause the reason is the the biggest reason why it's so hard for me to do like attend my classes now is because of the program. I'm not in touchstone anymore. When I first came I was in touchstone but between that time it moved me out. I did get unfortunately I failed a drug test."}]}, {"rank": 8, "topic_id": "8", "name": "Gaming & Computer Goals", "category": "Technology", "icon": "\ud83d\udda5\ufe0f", "color": "#f74f4f", "keywords": ["gaming PC", "computer", "streaming setup", "electronics", "technology", "console", "hardware"], "doc_count": 5, "doc_pct": 1.7, "composite_score": 19.48, "keyword_score": 0.465, "transcripts": [{"name": "JMarion Jackson Intake", "start": 39.1, "end": 656.8, "lines": "[39.08\u201347.41] speaker_0: And also, um, making friend well, I'm a friendly person, but you know, like trying to, you know what I'm saying?\n[55.59\u201389.58] speaker_1: We call I call that being like a chameleon. Right. So if you when you are fitting in, trying to fit in, you kinda like agree with the group and go along that. And then that is where you end up running the risk of losing yourself as you're saying, because I'm just adapting my behavior to meet the group. So I totally get how that could be the challenge. group. So I totally get how that could be the challenging thing. When you said answering out loud, I immediately thought of how, you know, when you answer the question and it's wrong\n[114.83\u2013124.08] speaker_0: Yeah, um but also the challenge of doing that is because I'm young, I'm sixteen. Oh to college, you know.\n[182.49\u2013191.49] speaker_1: UNF, okay. Alright, I think my niece goes to UNF. What's your favorite hobby or thing to do? Gaming?\n[338.40\u2013361.40] speaker_0: But then I wanna also incorporate like some um like IRL streams, you know, so like maybe me just going out. Also I have um like a group that I'm in, it's called Two Road. Um, we did some a couple of videos, you know what I'm saying? Um, so basically w w most of the time it's gonna be us, you know, just making content. Just trying to grow as like brothers, you know, and the thing, so\n[493.64\u2013499.89] speaker_0: I wanna learn like the ins and outs of like a resume if that makes sense, you know? So like\n[500.60\u2013517.23] speaker_0: I wanna learn like why such things are important and why such things are not important so I can know how to actually build an amazing resume. I have a resume already. Okay. But I I would like to add on to it to, you know\n[628.00\u2013656.75] speaker_0: from it. I was actually in John's room down the hall with the um computers, you know what I'm saying, just learn the ins and outs of a PC. Okay. Thank God I finally got my own PC so I know what I'm doing. Um I'm not just doing the the m utmost with it. Yeah. So I'm I'm being more cautious because I know what can happen. Yeah. Um if I don't do certain precautions. So I learned the ins and outs, the the bios, learning how to um update different how to um update different things so my PC runs smoothly. Okay. Things like that."}, {"name": "David Butler aka Loona Wolf Afton", "start": 46.7, "end": 468.4, "lines": "[46.69\u201355.69] speaker_0: Um r I wanna right now wan achieve uh cosplaying and um gaming and streaming. So be a full time gamer, slash streamer and cosplayer. Yes.\n[65.19\u201368.19] speaker_0: Gaming. Um cosplaying\n[70.44\u201375.44] speaker_1: So gaming\n[145.93\u2013171.93] speaker_0: So streamer would be me live streaming it? Like you know, going on cause I I'm a young streamer right now. I do stream but my computer is very bad right now, so I can't I have not been able to stream'cause my computer. Okay. So then the gaming, like I do like g I play games for a living and roleplay on games. Mm-hmm. So I guess you could put a streaming in game into one, but yeah. Cross playing, I'm work that's what this is my cross play stuff, these two are. Okay. I'm working on Okay. I'm working on one. Okay.\n[189.68\u2013194.93] speaker_0: Yeah. That's why you start out again, that's what I'm doing right now. Got the all time I need.\n[386.98\u2013414.73] speaker_0: Yes, right I hit that when I was in the rider mode, I was like, Oh my god, I can finally try something that's not that you don't need a license for And the second one was the bakery at a Jewish center and actually three jobs, actually. The second one was bakery at a Jewish center so I learned how to make hala mm which is I can't expo uh I can't say the recipe'cause it's classified on that one. Okay. I'm serious. Okay. Okay. I'm serious. Okay. And the third job was working in your school.\n[439.00\u2013442.38] speaker_0: So I'm big on electronics so I like to learn like new electronics every day.\n[462.38\u2013468.38] speaker_0: So see that's why I wish I had my gaming PC still. I had a whole PC. Like heavy duty gaming."}]}, {"rank": 9, "topic_id": "4", "name": "Mental Health & Personal Support", "category": "Mental Health", "icon": "\ud83d\udcac", "color": "#4ff7c8", "keywords": ["therapy", "anxiety", "therapist", "overthinking", "personal challenges", "support", "mental health", "stress"], "doc_count": 24, "doc_pct": 8.1, "composite_score": 19.15, "keyword_score": 0.3738, "transcripts": [{"name": "Tokyo", "start": 54.4, "end": 857.5, "lines": "[54.38\u201362.12] speaker_1: And this lady that worked with some kind of company, she was like she was like, Hey, I can you know help you upgrade your phone for seven dollars. I'm like, I only have five dollars.\n[81.88\u201393.38] speaker_1: A T and T the deal they offered was I could get a free phone but I didn't feel like waiting that long because they had to find one that actually was working. And I was like, No, I'm I'm gonna just stick with my phone and then trade it out later on.\n[93.62\u201396.38] speaker_1: They're like your first month's free unlimited talk and text day.\n[104.62\u2013109.62] speaker_1: My paperwork definitely said sixty dollars. Then I get an email and they're like a hundred and twelve.\n[268.61\u2013286.86] speaker_1: Then I called back to check on the status of my interview and the manager of the store she responded she answered the phone. So I told her that um I talked to her and she told me that she wanted me to come back in because the lady I interviewed with she told her I had serious health issues. So when I came in and I talked to her'cause I told her I had cystein ovaries. So sometimes I'm in pain.\n[304.61\u2013314.11] speaker_1: And then after I talked to her, um, she I told her that she went ahead and hired me and she was like, Oh, she wasn't supposed to do that'cause only I have the authority to hire\n[322.61\u2013336.36] speaker_1: to just for her to find me in the system'cause she tried to look me up and she couldn't find me. And then she called after I, you know, talked to the manager about it. Right. She called the girl called me back at six PM while I'm on the bus. I told her, Hey, I'm on the bus, can I call you later?\n[853.21\u2013857.46] speaker_1: Like they're all be talking about something that has to do with nature and I haven't"}, {"name": "Tiffany", "start": 739.9, "end": 1180.8, "lines": "[739.93\u2013753.57] speaker_0: I need to dress professionally, you know or like, you know, talk purpley or whatever. Like to the like so I do wanna work here. I'm I like the food or whatever, it's good or whatever, you know what I'm saying? Like I come here with my own breath all the time to play.\n[754.68\u2013817.49] speaker_1: Right. So yeah. Okay, yeah, no, because that's definitely that'll be good that we and then we have like I don't know, yeah, I need to double check with the curriculum but it's gonna be good. We're gonna definitely gonna leave here feeling accomplished. So that'll be good. Um so what and then we also have like Vystar and like different um like groups, companies, I don't know what it's called, of people like come in and so you learn like different people like come in and so you learn like different things and you can also like that's kind of like also like that gives you the opportunity to like build like okay like hello like introductions and like interview like not interview but like you know just building the yeah. That's what I think. That's what I think is like'cause also for me I think it was like'cause I didn't like that's the thing where it's like you don't know how you just like sit down and learn it. It's kind of just like okay like go through the motion. I've gone through plenty of times where I'm just like okay that was really gone through plenty of times where I'm just like, okay, that was really embarrassing. But then it's like, okay, now I know. Because that's like you don't learn until you actually like go and obviously you learn sitting here and doing it. Also resume definitely. I have some okay. I'm so sorry. I love talking. Um what challenges can we help you break down?\n[845.72\u2013880.22] speaker_0: Well I'm more um I'm definitely working on right now is making a schedule for myself'cause I got so much stuff going on on back burners and then like, oh you missed this meeting or you missed this like I I forgot about that. Like I remember you said that last week but I ain't put in my calendar so I think now I I'm like telling my Alexa like hey set a date for blah blah blah to put it in my calendar'cause I'm like and then it reminds me like I'm like and then it reminds me, I'm like, Girl, I forgot a headache. I woke up this morning and I was like, I'm like, why do my and lessa keep going off? So I looked at it and it was like, Oh yeah, I forgot. They said I had to go to that top program.\n[881.22\u2013894.47] speaker_0: And then my lesson kept waking me, I was like, Okay, okay, okay, like let me stop playing for him, you know. And so I took up more on but I went there a little early, like everyone wasn't all the way there. So I'm definitely like working on getting on time things.\n[941.32\u2013950.70] speaker_0: And um what else am I working on? I talked to my therapist and she said stop overthinking'cause I overthink. So I try to like slow down, like breathe.\n[956.36\u2013978.74] speaker_0: more r keeping myself responsible for things'cause I'll be like a pregnancy that's like, Oh, I draw a piece of paper on the floor and I'm like, that's fine, I'll pick it up later. Right. And then there's like a month go by and I'm like, Why the paper's still on the floor? Oh, I said I'll go pick it up. And then I'm more like, okay, I know I don't want to throw this in the chat but I I got to like I'm not gonna throw it on the table and then say I'm gonna pick it up so you know holding myself more accountable.\n[985.99\u20131012.99] speaker_1: Oh my gosh. I fail you. This is like literally me. I don't like I don't think until working here where I was like, okay, I need now I'm like writing stuff like all over the place where like before I would just be like Okay, I'll just remember and then I just for keep forgetting it. So it's just those things, right, where it's like you just have to That's the thing, the calendar like then I realized like okay like these apps that they put onto our phone, like okay that Like these apps that they put onto our phone, like, okay, that makes sense. Right.\n[1151.06\u20131180.81] speaker_1: Okay. Okay. Yeah, th that's that way, right? Yeah. Okay, yeah. I feel that's the thing with like then we can communicate that and just like whatever works out'cause I think definitely it would be preferable that you come here'cause that's still like if you're here until like twelve or one, like that's still four or five hours that of that you get like some yeah, that you like learn stuff that like you and I think depending on like whether we have like a person coming in tomorrow from like outside, like you know. So yeah, and that's like more than okay'cause it's I think So yeah, and that's like more than okay'cause it's I think it's more preferable for you to be here than to not be. Exactly. Yeah."}, {"name": "Michael", "start": 130.0, "end": 1176.9, "lines": "[130.04\u2013132.04] speaker_0: I like the work.\n[136.29\u2013140.04] speaker_0: It's either work full time or school full time. I I don't do no in between.\n[146.04\u2013147.29] speaker_0: Well we're working on GD.\n[149.04\u2013150.29] speaker_0: Yeah, I'm working on it.\n[153.56\u2013156.94] speaker_1: So how far away do you think you are from getting your G D D?\n[247.62\u2013251.87] speaker_0: I don't think I don't even consider people friends. It's either family or I don't mean.\n[701.71\u2013727.96] speaker_0: I don't really understand why she was mad. Okay. But um I was like, I was talking to Miss Lisa, I was like, Miss Lisa, if she ends up touching me, you know how I am. I don't, I don't okay, I ask anybody that knows me, uh-huh, my biggest pet thief, a man touching a female. Okay. I I've beat people up over that. Okay. Like, and so I was like, Miss Lisa, I'm not sure if I like because I was already manic, and when I get manic, I don't think I cuss out everybody, I just go off my. I cuss out everybody, I just go off on anyone that's around me. Okay.\n[1172.67\u20131176.92] speaker_1: Okay. I I think that works. Yeah. So like what what kind of work was it?"}, {"name": "David Butler aka Loona Wolf Afton", "start": 145.9, "end": 420.7, "lines": "[145.93\u2013171.93] speaker_0: So streamer would be me live streaming it? Like you know, going on cause I I'm a young streamer right now. I do stream but my computer is very bad right now, so I can't I have not been able to stream'cause my computer. Okay. So then the gaming, like I do like g I play games for a living and roleplay on games. Mm-hmm. So I guess you could put a streaming in game into one, but yeah. Cross playing, I'm work that's what this is my cross play stuff, these two are. Okay. I'm working on Okay. I'm working on one. Okay.\n[269.13\u2013289.63] speaker_0: At Homer Shirt last month, so that's been my mind twenty four seven. Okay. And only I have four that I can escape that is virtual reality. And talk it to my D uh talk to my personalities and let them come out. Other words D I D. So I have D ID so like some some babies facing with uh si severe trauma.\n[291.13\u2013309.38] speaker_0: Yes. So basically what released me for that is talking to my personal my different um personalities, um, virtual reality. Gets like get my mind on things f to be honest, vaping does help too, but um that's what that's what um it's been helping a lot was that.\n[358.60\u2013361.98] speaker_1: And have you worked any jobs before?\n[362.98\u2013367.73] speaker_1: Okay, what was the what was the what kind of work was it and what did you learn?\n[367.73\u2013385.98] speaker_0: Two things I did two jobs. One was at a group I lived at was a lawn worker. Lawn so lawn mo uh Like landscaping. Yes. Okay. At the lawn. And that I l I learned how to how to um operate dangerous equipment on that one.'Cause I never knew how to operate those in my life.\n[386.98\u2013414.73] speaker_0: Yes, right I hit that when I was in the rider mode, I was like, Oh my god, I can finally try something that's not that you don't need a license for And the second one was the bakery at a Jewish center and actually three jobs, actually. The second one was bakery at a Jewish center so I learned how to make hala mm which is I can't expo uh I can't say the recipe'cause it's classified on that one. Okay. I'm serious. Okay. Okay. I'm serious. Okay. And the third job was working in your school.\n[414.73\u2013420.73] speaker_1: Alright, so f if you were to say combine the two last two ones, what would you think your biggest lesson was from the last two?"}]}];
+const CATEGORIES = {"Education": {"count": 2, "docs": 155, "topics": ["Education & GED Pathway", "GED Test Preparation"]}, "Creative & Arts": {"count": 1, "docs": 18, "topics": ["Streaming, Gaming & Creative Arts"]}, "Mental Health": {"count": 2, "docs": 51, "topics": ["Anger & Emotional Regulation", "Mental Health & Personal Support"]}, "Work & Career": {"count": 1, "docs": 34, "topics": ["Career Goals & Job Readiness"]}, "Health & Wellness": {"count": 1, "docs": 6, "topics": ["Substance Use & Recovery"]}, "Technology": {"count": 2, "docs": 32, "topics": ["Phone & Technology Barriers", "Gaming & Computer Goals"]}};
+const CAT_COLORS = {"Education": "#4f8ef7", "Creative & Arts": "#f76b8a", "Mental Health": "#f7a94f", "Work & Career": "#4fdb9a", "Health & Wellness": "#b47ef7", "Technology": "#4fd6f7"};
+
+// ── Stat cards ──────────────────────────────────────────────────────────────
+const totalDocs = TOPICS.reduce((s,t) => s + t.doc_count, 0);
+const totalFiles = new Set(TOPICS.flatMap(t => t.transcripts.map(r => r.name))).size;
+const stats = [
+  { val: TOPICS.length,              lbl: 'Topics Discovered' },
+  { val: totalDocs,                  lbl: 'Document Chunks' },
+  { val: Object.keys(CATEGORIES).length, lbl: 'Categories' },
+  { val: totalFiles,                 lbl: 'Transcripts Linked' },
+  { val: Math.max(...TOPICS.map(t=>t.composite_score)).toFixed(1), lbl: 'Top Quality Score' },
+];
+const statRow = document.getElementById('statRow');
+stats.forEach((s,i) => {
+  const el = document.createElement('div');
+  el.className = 'stat-card';
+  el.style.animationDelay = i*0.07+'s';
+  el.innerHTML = `<span class="val">${s.val}</span><span class="lbl">${s.lbl}</span>`;
+  statRow.appendChild(el);
+});
+
+// ── Filter buttons ──────────────────────────────────────────────────────────
+const filterBar = document.getElementById('filterBar');
+Object.keys(CAT_COLORS).forEach(cat => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn';
+  btn.dataset.cat = cat;
+  btn.textContent = cat;
+  btn.style.setProperty('--cat-color', CAT_COLORS[cat]);
+  filterBar.appendChild(btn);
+});
+
+let activeFilter = 'All';
+let searchTerm   = '';
+
+filterBar.addEventListener('click', e => {
+  if (!e.target.classList.contains('filter-btn')) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  activeFilter = e.target.dataset.cat;
+  applyFilters();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchTerm = e.target.value.toLowerCase();
+  applyFilters();
+});
+
+function applyFilters() {
+  let visible = 0;
+  document.querySelectorAll('.topic-card').forEach(card => {
+    const catMatch  = activeFilter === 'All' || card.dataset.cat === activeFilter;
+    const termMatch = !searchTerm ||
+      card.dataset.name.toLowerCase().includes(searchTerm) ||
+      card.dataset.kws.toLowerCase().includes(searchTerm);
+    const show = catMatch && termMatch;
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  document.getElementById('noResults').classList.toggle('visible', visible === 0);
+}
+
+// ── Topic cards ─────────────────────────────────────────────────────────────
+const grid = document.getElementById('topicsGrid');
+const maxScore = Math.max(...TOPICS.map(t => t.composite_score));
+const maxDocs  = Math.max(...TOPICS.map(t => t.doc_count));
+
+TOPICS.forEach((t, i) => {
+  const card = document.createElement('div');
+  card.className = 'topic-card';
+  card.dataset.cat  = t.category;
+  card.dataset.name = t.name;
+  card.dataset.kws  = t.keywords.join(' ');
+  card.style.animationDelay = (i * 0.06) + 's';
+  card.style.setProperty('--topic-color', t.color);
+  card.style.borderColor = 'var(--border)';
+  card.addEventListener('mouseenter', () => card.style.borderColor = t.color + '66');
+  card.addEventListener('mouseleave', () => card.style.borderColor = 'var(--border)');
+
+  const scoreBarPct  = (t.composite_score / maxScore * 100).toFixed(1);
+  const docsBarPct   = (t.doc_count / maxDocs * 100).toFixed(1);
+  const catColor     = CAT_COLORS[t.category] || '#888';
+
+  const kwHtml = t.keywords.map(k =>
+    `<span class="kw">${k}</span>`).join('');
+
+  const transHtml = t.transcripts.map(r => {
+    const dur = (r.end - r.start).toFixed(0);
+    const safeLines = r.lines
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `
+    <details class="trans-item">
+      <summary class="trans-summary">
+        <span class="trans-name">👤 ${r.name}</span>
+        <span class="trans-time">${r.start}s &ndash; ${r.end}s (${dur}s)</span>
+      </summary>
+      <pre class="trans-lines">${safeLines}</pre>
+    </details>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="tc-header">
+      <div class="tc-icon" style="background:${t.color}22;">${t.icon}</div>
+      <div class="tc-meta">
+        <div class="tc-name">${t.name}</div>
+        <span class="tc-cat" style="background:${catColor}22;color:${catColor};">${t.category}</span>
+      </div>
+      <div class="tc-rank">#${t.rank}</div>
+    </div>
+    <div class="tc-score">
+      <span class="tc-score-label">Quality</span>
+      <div class="tc-bar-wrap">
+        <div class="tc-bar" style="width:${scoreBarPct}%;background:${t.color};"></div>
+      </div>
+      <span class="tc-score-val">${t.composite_score}</span>
+    </div>
+    <div class="tc-keywords">${kwHtml}</div>
+    <div class="tc-docs">
+      <span class="tc-docs-label">Coverage</span>
+      <div class="tc-docs-bar-wrap">
+        <div class="tc-docs-bar" style="width:${docsBarPct}%;background:${t.color};"></div>
+      </div>
+      <span class="tc-docs-val">${t.doc_count} docs (${t.doc_pct}%)</span>
+    </div>
+    <div class="tc-transcripts">
+      <div class="tc-trans-label">Transcript Evidence <span>${t.transcripts.length} file${t.transcripts.length!==1?'s':''}</span></div>
+      ${transHtml || '<span style="color:var(--muted);font-size:11px;">No direct matches found.</span>'}
+    </div>`;
+
+  grid.appendChild(card);
+});
+
+// ── Charts ──────────────────────────────────────────────────────────────────
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size   = 11;
+
+// Bar chart — doc coverage
+new Chart(document.getElementById('barChart'), {
+  type: 'bar',
+  data: {
+    labels: TOPICS.map(t => t.name.length > 22 ? t.name.slice(0,22)+'…' : t.name),
+    datasets: [{
+      label: 'Documents',
+      data:  TOPICS.map(t => t.doc_count),
+      backgroundColor: TOPICS.map(t => t.color + 'bb'),
+      borderColor:     TOPICS.map(t => t.color),
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    indexAxis: 'y',
+    plugins: { legend:{display:false}, tooltip:{callbacks:{
+      label: ctx => ` ${ctx.raw} docs (${TOPICS[ctx.dataIndex].doc_pct}%)`
+    }} },
+    scales: {
+      x: { grid:{color:'rgba(255,255,255,.05)'}, ticks:{color:'#6b7280'} },
+      y: { grid:{display:false}, ticks:{color:'#9ca3af', font:{size:10}} }
+    }
+  }
+});
+
+// Doughnut — by category
+const catNames   = Object.keys(CATEGORIES);
+const catDocTots = catNames.map(c => CATEGORIES[c].docs);
+const catColors  = catNames.map(c => CAT_COLORS[c] || '#888');
+new Chart(document.getElementById('doughnutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: catNames,
+    datasets: [{
+      data: catDocTots,
+      backgroundColor: catColors.map(c => c + 'cc'),
+      borderColor:     catColors,
+      borderWidth: 2,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    cutout: '60%',
+    plugins: {
+      legend:{ position:'bottom', labels:{ boxWidth:10, padding:10, color:'#9ca3af' } },
+      tooltip:{callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} docs` }}
+    }
+  }
+});
+
+// Bubble — quality score vs coverage
+new Chart(document.getElementById('bubbleChart'), {
+  type: 'bubble',
+  data: {
+    datasets: TOPICS.map(t => ({
+      label: t.name,
+      data: [{
+        x: t.doc_pct,
+        y: t.composite_score,
+        r: Math.max(6, Math.sqrt(t.doc_count) * 1.8)
+      }],
+      backgroundColor: t.color + '88',
+      borderColor:     t.color,
+      borderWidth: 1.5,
+    }))
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins: {
+      legend:{display:false},
+      tooltip:{callbacks:{
+        label: ctx => {
+          const t = TOPICS[ctx.datasetIndex];
+          return [`${t.name}`, `Coverage: ${t.doc_pct}%`, `Score: ${t.composite_score}`];
+        }
+      }}
+    },
+    scales: {
+      x: {
+        title:{ display:true, text:'Coverage (%)', color:'#6b7280' },
+        grid:{color:'rgba(255,255,255,.05)'}, ticks:{color:'#6b7280'}
+      },
+      y: {
+        title:{ display:true, text:'Quality Score', color:'#6b7280' },
+        grid:{color:'rgba(255,255,255,.05)'}, ticks:{color:'#6b7280'}
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
